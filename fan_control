@@ -1,0 +1,74 @@
+#include <DHT.h>
+#include <Servo.h>
+#include <LiquidCrystal.h>
+#define Type DHT11
+
+//DHT11 variables
+const int sensePin=2;
+float humidity;
+float temp;
+float setHumidity=48; //set humidity level to trigger fan
+
+//fan servo variables
+bool fanState; //true=on, false=off
+Servo fan;
+const int onAngle=100; //servo positions for flipping switch on/off
+const int offAngle=45;
+const int fanServoPin=A5;//servo control pin (must be analog)
+DHT HT(sensePin,Type);
+
+//display variables
+String line1="Auto Fan Control";  //the string to print on the LCD
+String line2="James S., 2022";  //the string to print on the LCD
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(4, 6, 10, 11, 12, 13);
+
+void setup() {
+  HT.begin(); //initialize temperature sensor
+  Servo fan; //initialize fan servo
+  lcd.begin(16, 2); //initialize LCD
+  refreshLCD(); 
+  fan.attach(fanServoPin);
+  delay(3000);//allow inputs to stabilize, display msg
+  lcd.clear();
+}
+
+void refreshLCD() {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(line1);
+  lcd.setCursor(0,1);
+  lcd.print(line2);
+  delay(250);
+}
+
+void tempRead() {
+  humidity=HT.readHumidity();
+  temp=HT.readTemperature(true);
+  line1=String(temp) + "F " + String(humidity) + "% RH";
+  if (humidity>setHumidity) {
+    fanState = true;
+  } else {
+    fanState = false;
+  }
+}
+
+void fanStateChk() {
+   if (fanState == true) {
+    fan.attach(fanServoPin);
+    fan.write(onAngle);
+    line2="Fan on";
+   } 
+   else if (fanState == false) {
+    fan.attach(fanServoPin);
+    fan.write(offAngle);
+    line2="Fan off"; 
+   }
+  }
+
+void loop() {
+ tempRead();//checks humidity, updates display, sets fanState
+ fanStateChk();//checks fanState, executes servo movement
+ refreshLCD();//updates LCD display with latest values
+ 
+}
